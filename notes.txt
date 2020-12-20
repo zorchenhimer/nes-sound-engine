@@ -1,0 +1,32 @@
+music input data:
+    - Metadata
+        - BPM
+        - notes per beat
+        - macro speed?
+    - Instruments
+        - volume macros
+        - note macros
+    - Channels
+        - Segments
+            - Notes
+
+SFX input data:
+    - metadata
+        - track
+        - instrument
+        - speed
+        - length
+    - notes
+
+Things the engine needs to be able to do:
+    - load song w/o playing it (prep the song)
+    - start, pause, and restart song on command.
+    - Play SFX over song w/o pausing song
+    - play multiple SFX with priorities?
+
+Sequence data
+    - notes and commands
+    - commands are $80 & CMD
+    - note values are indexes into note table
+        - total of 96 notes available
+
