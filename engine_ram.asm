@@ -8,7 +8,7 @@
     TickRate    .byte ; Number of ticks between events
     Volume      .byte ;
     Data        .word ; Pointer to note/command data
-    Length      .byte
+    Length      .byte ; Length of data, including the ending CMD::Disable
 .endstruct
 
 .enum Enable

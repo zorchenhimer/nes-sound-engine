@@ -15,9 +15,10 @@ endif
 # Assembler and linker paths
 CA = ca65$(EXT)
 LD = ld65$(EXT)
+CONV = conversion$(EXT)
 
-CAFLAGS = -g -t nes --color-messages
-LDFLAGS = -C $(NESCFG) --dbgfile bin/$(NAME).dbg -m bin/$(NAME).map --color-messages
+CAFLAGS = -g -t nes
+LDFLAGS = -C $(NESCFG) --dbgfile bin/$(NAME).dbg -m bin/$(NAME).map
 
 all: bin/ bin/$(NAME).nes
 
@@ -33,8 +34,11 @@ bin/sound-engine.nes: bin/$(NAME).o
 bin/sound-engine.o: $(SOURCES)
 	$(CA) $(CAFLAGS) -o $@ $<
 
-conversion/conversion.exe: conversion/*.go
-	$(MAKE) -C conversion/
+#conversion/conversion.exe: conversion/*.go
+#	$(MAKE) -C conversion/
 
-music.asm: RunnJumper_6132019.txt conversion/conversion.exe
-	conversion/conversion.exe -i $< -o $@
+music.asm: RunnJumper_6132019.txt bin/$(CONV)
+	bin/$(CONV) -i $< -o $@
+
+bin/$(CONV): conversion/*.go
+	cd conversion && go build -o ../bin/$(CONV)

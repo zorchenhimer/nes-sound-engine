@@ -866,6 +866,7 @@ PlaySfx:
     lda (PointerA), y
     sta Sfx_State + SfxState::Volume
 
+    ; Last value is a pointer to the SFX data
     iny
     lda (PointerA), y
     sta Sfx_State + SfxState::Data+0
@@ -874,7 +875,9 @@ PlaySfx:
     sta Sfx_State + SfxState::Data+1
     rts
 
-; Pointer to channel data in PointerA
+; PointerA points to channel data
+; This only clears the channel state, not the Instrument
+; state for the given channel
 clearChannelState:
     ldy #6
     lda #0

@@ -30,3 +30,26 @@ Sequence data
     - note values are indexes into note table
         - total of 96 notes available
 
+TODOs:
+    - cmdFnInstrument
+        only volume macro is loaded into pointer table
+
+    - cmdFnHalt
+        currently just BRK's. should stop all sound on given channel (across all channels?)
+
+    - WriteBuffers
+        use update flags to determine what buffers to write
+
+    - SoundProcess
+        - frame/order progression
+        - process instrument on frame
+        - all of sfx stuff (a bunch is currently commented out)
+
+    - PAL/NTSC detection (low priority)
+
+TODO on stream:
+    - load song on button press (keep load and play separate?)
+    - stop playback on button press (clear all buffers and write them)
+    - get sounds playing, ignoring instruments (ie, solid tones)
+        - are buffers updated? are they written?
+    - frame/order progression
