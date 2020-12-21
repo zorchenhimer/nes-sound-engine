@@ -35,6 +35,7 @@ controller_Old: .res 1
 IgnoreInput:    .res 1
 btnY:           .res 1
 btnX:           .res 1
+Sleeping:       .res 1
 
 .segment "CHR0"
     .byte "CHR0"
@@ -85,14 +86,14 @@ RESET:
     inx
     bne :-  ; loop if != 0
 
+    lda #$80
+    sta $2000
+
     lda #<SongMeta
     sta SoundEngine::PointerA+0
     lda #>SongMeta
     sta SoundEngine::PointerA+1
     jsr SoundEngine::SoundInit
-
-    lda #0
-    jsr SoundEngine::LoadSong
 
 Frame:
     ; TODO: input things for sound activation
@@ -100,17 +101,47 @@ Frame:
     jsr ReadControllers
 
     lda #BUTTON_UP
+    jsr ButtonPressedP1
     beq :+
     lda SoundEngine::Sfx::Default
     jsr SoundEngine::PlaySfx
 :
 
+    lda #BUTTON_A
+    jsr ButtonPressedP1
+    beq :+
+    lda #1
+    jsr SoundEngine::LoadSong
+:
+
     jsr SoundEngine::SoundProcess
+    jsr WaitForNMI
     jmp Frame
 
 NMI:
+    pha
+    txa
+    pha
+    tya
+    pha
+
+    lda #$FF
+    sta Sleeping
     jsr SoundEngine::WriteBuffers
+
+    pla
+    tay
+    pla
+    tax
+    pla
     rti
+
+WaitForNMI:
+    bit Sleeping
+    bpl WaitForNMI
+    lda #0
+    sta Sleeping
+    rts
 
 ; Was a button pressed this frame?
 ButtonPressedP1:

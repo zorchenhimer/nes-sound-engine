@@ -103,8 +103,8 @@ SoundInit:
     sta MacroListPointer+1
 
     ; Enable everything (make this configurable?)
-    ;lda #Enable::PulseA | Enable::PulseB | Enable::Triangle | Enable::Noise
-    ;sta $4015
+    lda #Enable::PulseA | Enable::PulseB | Enable::Triangle | Enable::Noise
+    sta $4015
     rts
 
 resetChannelStates:
