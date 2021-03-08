@@ -19,40 +19,35 @@
     ;DMC         = 1 << 4
 .endenum
 
-.struct InstrumentMacro
-    Loop .byte
-    Release .byte
-    Length .byte
-    Pointer .word
-.endstruct
+.macro genInstMacroStruct basename
+    .ident(.concat(basename, "_Loop")): .res 1
+    .ident(.concat(basename, "_Release")): .res 1
+    .ident(.concat(basename, "_Length")): .res 1
+    .ident(.concat(basename, "_Pointer")): .res 2
+.endmacro
 
 ; Loaded Instruments
-.struct Instrument
-    Volume      .tag InstrumentMacro
-    Arpeggio    .tag InstrumentMacro
-    Pitch       .tag InstrumentMacro
-    HiPitch     .tag InstrumentMacro
-    Duty        .tag InstrumentMacro
-.endstruct
+.macro genInstrumentStruct basename
+    genInstMacroStruct .concat(basename, "_Volume")
+    genInstMacroStruct .concat(basename, "_Arpeggio")
+    genInstMacroStruct .concat(basename, "_Pitch")
+    genInstMacroStruct .concat(basename, "_HiPitch")
+    genInstMacroStruct .concat(basename, "_Duty")
+.endmacro
 
-.struct ChannelState
-    Wait        .byte   ; rows to wait for the next read
-    ;Frames      .word   ; pointer to the list of frames for this channel
-    CurrentFrame .byte ; index into the above frame list
-    ReadOffset  .byte   ; byte offset of the next row in the frame
+.macro genChannelStateStruct basename
+    .ident(.concat(basename, "_Wait")): .res 1
+    .ident(.concat(basename, "_CurrentFrame")): .res 1
+    .ident(.concat(basename, "_ReadOffset")): .res 1
 
-    ; Instrument stuff
-    Tick        .byte   ; basically the offset into the instrument data
-    TickRate    .byte
-    Instrument  .tag Instrument   ; loaded instrument
-.endstruct
+    .ident(.concat(basename, "_Tick")): .res 1
+    .ident(.concat(basename, "_TickRate")): .res 1
+.endmacro
 
 .struct ChannelPointers
     Frames  .word ; current song's list of frames
     Orders  .word ; current song's list of orders
 .endstruct
-
-.out .sprintf("sizeof(ChannelState): %d", .sizeof(ChannelState))
 
 .segment "ZEROPAGE"
 PointerA:   .res 2
@@ -64,6 +59,17 @@ PointerFrame:   .res 2 ; current working frame
 PointerOrder:   .res 2 ; current order
 PointerInstrument: .res 2
 PointerMacro:   .res 2
+
+Ch_Wait: .res 1
+;Ch_ReadOffset: .res 1   ; use Offset
+Ch_CurrentFrame: .res 1
+Ch_Tick: .res 1
+Ch_Id: .res 1
+
+ChIns_VolLoop: .res 1
+ChIns_VolRelease: .res 1
+ChIns_VolLength: .res 1
+ChIns_VolPointer: .res 1
 
 Sfx_State:              .tag SfxState
 SongListPointer:        .res 2
@@ -119,10 +125,18 @@ Noise_Period = $400E
 Noise_Counter = $400F
 .endenum
 
-PulseA_State:   .tag ChannelState
-PulseB_State:   .tag ChannelState
-Triangle_State: .tag ChannelState
-Noise_State:    .tag ChannelState
+genChannelStateStruct "PulseA_State"
+genChannelStateStruct "PulseB_State"
+genChannelStateStruct "Triangle_State"
+genChannelStateStruct "Noise_State"
+
+ChannelInstruments:
+genInstrumentStruct "PulseA"
+ChannelInstrumentsLength = * - ChannelInstruments
+.out .sprintf("ChannelInstrumentsLeng: %d", ChannelInstrumentsLength)
+genInstrumentStruct "PulseB"
+genInstrumentStruct "Triangle"
+genInstrumentStruct "Noise"
 
 PulseA_TimerLo:  .res 1 ; $4002
 PulseA_TimerHi:  .res 1 ; $4003

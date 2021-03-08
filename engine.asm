@@ -108,20 +108,21 @@ SoundInit:
     rts
 
 resetChannelStates:
+    brk ; TODO: rewrite this
     ; Clear out all the channel states.  This includes the loaded
     ; instruments for each channel.
-    LoopCount = .sizeof(ChannelState) * 4
-    .out .sprintf("LoopCount: %d", LoopCount)
-    lda #0
-    ldx #0
-:
-    sta PulseA_State, x
-    inx
-    cpx #LoopCount
-    bne :-
-
-    sta Global::OrderIdx
-    rts
+    ;LoopCount = .sizeof(ChannelState) * 4
+;    .out .sprintf("LoopCount: %d", LoopCount)
+;    lda #0
+;    ldx #0
+;:
+;    sta PulseA_State, x
+;    inx
+;    cpx #LoopCount
+;    bne :-
+;
+;    sta Global::OrderIdx
+;    rts
 
 ; Index to song in A
 LoadSong:
@@ -225,6 +226,25 @@ LoadSong:
     nop
     rts
 
+.macro loadOrder channelname
+    ; Load pointer to order list
+    ldy #ChannelPointers::Orders
+    lda (PointerA), y
+    sta PointerOrder+0
+    iny
+    lda (PointerA), y
+    sta PointerOrder+1
+
+    ; load frame index
+    ldy Global::OrderIdx
+    lda (PointerOrder), y
+    sta .ident(.concat(channelname, "_State_CurrentFrame"))
+
+    lda #0
+    sta .ident(.concat(channelname, "_State_ReadOffset"))
+
+.endmacro
+
 NextOrder:
     ; Go to next frame in order
     inc Global::OrderIdx
@@ -243,67 +263,44 @@ LoadOrder:
     sta PointerA+0
     lda #>PulseA_Pointers
     sta PointerA+1
-
-    lda #<PulseA_State
-    sta PointerB+0
-    lda #>PulseA_State
-    sta PointerB+1
-    jsr @loadOrder
+    loadOrder "PulseA"
 
     lda #<PulseB_Pointers
     sta PointerA+0
     lda #>PulseB_Pointers
     sta PointerA+1
-
-    lda #<PulseB_State
-    sta PointerB+0
-    lda #>PulseB_State
-    sta PointerB+1
-    jsr @loadOrder
+    loadOrder "PulseB"
 
     lda #<Triangle_Pointers
     sta PointerA+0
     lda #>Triangle_Pointers
     sta PointerA+1
-
-    lda #<Triangle_State
-    sta PointerB+0
-    lda #>Triangle_State
-    sta PointerB+1
-    jsr @loadOrder
+    loadOrder "Triangle"
 
     lda #<Noise_Pointers
     sta PointerA+0
     lda #>Noise_Pointers
     sta PointerA+1
-
-    lda #<Noise_State
-    sta PointerB+0
-    lda #>Noise_State
-    sta PointerB+1
-    jsr @loadOrder
+    loadOrder "Noise"
     rts
 
-@loadOrder:
-    ; Load pointer to order list
-    ldy #ChannelPointers::Orders
-    lda (PointerA), y
-    sta PointerOrder+0
-    iny
-    lda (PointerA), y
-    sta PointerOrder+1
+.macro loadProcessVars channelname
+    lda .ident(.concat(channelname, "_State_Wait"))
+    sta Ch_Wait
+    lda .ident(.concat(channelname, "_State_ReadOffset"))
+    sta Offset
+    lda .ident(.concat(channelname, "_State_Tick"))
+    sta Ch_Tick
+.endmacro
 
-    ; load frame index
-    ldy Global::OrderIdx
-    lda (PointerOrder), y
-
-    ldy #ChannelState::CurrentFrame
-    sta (PointerB), y
-
-    lda #0
-    ldy #ChannelState::ReadOffset
-    sta (PointerB), y
-    rts
+.macro saveProcessVars channelname
+    lda Ch_Wait
+    sta .ident(.concat(channelname, "_State_Wait"))
+    lda Offset
+    sta .ident(.concat(channelname, "_State_ReadOffset"))
+    lda Ch_Tick
+    sta .ident(.concat(channelname, "_State_Tick"))
+.endmacro
 
 ; Process sounds for the this frame.
 ; TODO: frame/order progression
@@ -345,17 +342,16 @@ SoundProcess:
     lda #>PulseA_Pointers
     sta PointerA+1
 
-    lda #<PulseA_State
-    sta PointerB+0
-    lda #>PulseA_State
-    sta PointerB+1
-
     lda #<PulseA_TimerLo
     sta PointerD+0
     lda #>PulseA_TimerLo
     sta PointerD+1
 
+    loadProcessVars "PulseA"
+    lda #0
+    sta Ch_Id
     jsr processChannel
+    saveProcessVars "PulseA"
 
     ;
     ; Pulse B
@@ -365,17 +361,16 @@ SoundProcess:
     lda #>PulseB_Pointers
     sta PointerA+1
 
-    lda #<PulseB_State
-    sta PointerB+0
-    lda #>PulseB_State
-    sta PointerB+1
-
     lda #<PulseB_TimerLo
     sta PointerD+0
     lda #>PulseB_TimerLo
     sta PointerD+1
 
+    loadProcessVars "PulseB"
+    lda #1
+    sta Ch_Id
     jsr processChannel
+    saveProcessVars "PulseB"
 
     ;
     ; Triangle
@@ -385,17 +380,16 @@ SoundProcess:
     lda #>Triangle_Pointers
     sta PointerA+1
 
-    lda #<Triangle_State
-    sta PointerB+0
-    lda #>Triangle_State
-    sta PointerB+1
-
     lda #<Triangle_TimerLo
     sta PointerD+0
     lda #>Triangle_TimerLo
     sta PointerD+1
 
+    loadProcessVars "Triangle"
+    lda #2
+    sta Ch_Id
     jsr processChannel
+    saveProcessVars "Triangle"
 
     ;
     ; Noise
@@ -405,16 +399,13 @@ SoundProcess:
     lda #>Noise_Pointers
     sta PointerA+1
 
-    lda #<Noise_State
-    sta PointerB+0
-    lda #>Noise_State
-    sta PointerB+1
-
     lda #<Noise_Volume
     sta PointerD+0
     lda #>Noise_Volume
     sta PointerD+1
 
+    lda #2
+    sta Ch_Id
     jsr processChannelNoise
 
     inc Global::CurrentRow
@@ -497,11 +488,13 @@ processChannelNoise:
 incrementChannel:
     ; increment data pointer and fall through
     ; to processChannel
-    ldy #ChannelState::ReadOffset
-    lda (PointerB), y
+    ;ldy #ChannelState::ReadOffset
+    ;lda (PointerB), y
+    lda Offset
     clc
     adc #1
-    sta (PointerB), y
+    ;sta (PointerB), y
+    sta Offset
 
 ; SongMeta
 ;   SongList
@@ -544,18 +537,13 @@ processChannel:
     ; else, act on command
 
     ; Check for wait. if !zero, decrement and return
-    ldy #ChannelState::Wait
-    lda (PointerB), y
+    lda Ch_Wait
     beq :+
     sec
     sbc #1
-    sta (PointerB), y
+    sta Ch_Wait
     rts
 :
-
-    ldy #ChannelState::ReadOffset
-    lda (PointerB), y
-    sta Offset
 
     ; Get Frame list
     ldy #ChannelPointers::Frames
@@ -565,8 +553,7 @@ processChannel:
     lda (PointerA), y
     sta PointerC+1
 
-    ldy #ChannelState::CurrentFrame
-    lda (PointerB), y
+    lda Ch_CurrentFrame
     asl a ; index -> offset
     tay
 
@@ -584,8 +571,7 @@ processChannel:
     bmi @doCommand
     ; Reset instrument
     lda #0
-    ldy #ChannelState::Tick
-    sta (PointerB), y
+    sta Ch_Tick
 
     ; Store note Hi value in buffer
     ldx Data
@@ -618,6 +604,7 @@ processChannel:
 @cmdLookup:
     lda Data
     and #$7F
+    asl a   ; index -> offset
     tax
     lda commandFunctions, x
     sta PointerFn+0
@@ -672,6 +659,7 @@ cmdFnVolumeSlide:
     jmp incrementChannel
 cmdFnJump:
     jmp incrementChannel
+
 cmdFnSkip:
     ; Get argument
     iny
@@ -702,14 +690,6 @@ cmdFnTimbreControl:
 cmdFnRelease:
     jmp incrementChannel
 
-.enum insData
-    Volume = 0
-    Arpeggio
-    Pitch
-    HiPitch
-    Duty
-.endEnum
-
 cmdFnInstrument:
     ; Get argument
     iny
@@ -735,30 +715,38 @@ cmdFnInstrument:
     lda (MacroListPointer), y
     sta PointerMacro+1
 
+    ldx Ch_Id
+    lda Mult25, x
+    tax
+
+    ; Volume Loop
     ldy #0
     lda (PointerMacro), y
-    ldy #ChannelState::Instrument+Instrument::Volume+InstrumentMacro::Loop
-    sta (PointerB), y
+    sta ChannelInstruments, x
 
+    ; Volume Release
+    inx
     ldy #1
     lda (PointerMacro), y
-    ldy #ChannelState::Instrument+Instrument::Volume+InstrumentMacro::Release
-    sta (PointerB), y
+    sta ChannelInstruments, x
 
+    ; Volume Length
+    inx
     ldy #2
     lda (PointerMacro), y
-    ldy #ChannelState::Instrument+Instrument::Volume+InstrumentMacro::Length
-    sta (PointerB), y
+    sta ChannelInstruments, x
 
+
+    ; Volume Pointer
+    inx
     ldy #3
     lda (PointerMacro), y
-    ldy #ChannelState::Instrument+Instrument::Volume+InstrumentMacro::Pointer+0
-    sta (PointerB), y
+    sta ChannelInstruments, x
 
+    inx
     ldy #4
     lda (PointerMacro), y
-    ldy #ChannelState::Instrument+Instrument::Volume+InstrumentMacro::Pointer+1
-    sta (PointerB), y
+    sta ChannelInstruments, x
 
     ; TODO: the rest of the macros, lol
 
@@ -770,13 +758,11 @@ cmdFnWait:
     lda (PointerFrame), y
 
     ; Store it
-    ldy #ChannelState::Wait
-    sta (PointerB), y
+    sta Ch_Wait
 
-    ; save offset
+    ; Save offset
     tya
-    ldy #ChannelState::ReadOffset
-    sta (PointerB), y
+    sta Offset
     rts
 
 cmdFnDPCM_Pitch:
@@ -913,3 +899,8 @@ sfxA:
 
 .endscope
 
+
+Mult25:
+    .repeat 5, i
+        .byte (i * 25)
+    .endrepeat
