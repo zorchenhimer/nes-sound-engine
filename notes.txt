@@ -1,3 +1,15 @@
+TODO Order of operations
+    GameLoop
+        load song                       // does the actual loading of the song
+        start/pause/stop/restart song   // sets flags that are handled next engine tick
+        play SFX                        // sets a state that's loaded next engine tick
+
+    NMI
+        // after all drawing stuff
+        Write buffers
+        Run sound engine for one tick
+
+
 music input data:
     - Metadata
         - BPM
@@ -53,3 +65,15 @@ TODO on stream:
     - get sounds playing, ignoring instruments (ie, solid tones)
         - are buffers updated? are they written?
     - frame/order progression
+
+Debug info on screen
+    - current song
+    - current frame
+    - current order
+    - Global state stuff
+    - update flags?
+    - info for each channel
+        - current buffer value
+        - current data pointer
+        - all of ChannelState?
+        - all of Instrument info?
