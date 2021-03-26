@@ -102,27 +102,29 @@ SoundInit:
     lda (PointerA), y
     sta MacroListPointer+1
 
+    lda #EngineFlag::Ready
+    sta EngineFlags
+
     ; Enable everything (make this configurable?)
     lda #Enable::PulseA | Enable::PulseB | Enable::Triangle | Enable::Noise
     sta $4015
     rts
 
 resetChannelStates:
-    brk ; TODO: rewrite this
     ; Clear out all the channel states.  This includes the loaded
     ; instruments for each channel.
-    ;LoopCount = .sizeof(ChannelState) * 4
-;    .out .sprintf("LoopCount: %d", LoopCount)
-;    lda #0
-;    ldx #0
-;:
-;    sta PulseA_State, x
-;    inx
-;    cpx #LoopCount
-;    bne :-
-;
-;    sta Global::OrderIdx
-;    rts
+    ;LoopCount = (ChannelInstrumentsLength * 4) + ChannelStateLength
+    ;.out .sprintf("LoopCount: %d", LoopCount)
+    lda #0
+    ldx #0
+:
+    sta ChannelStateStart, x
+    inx
+    cpx #ChannelStateLength
+    bne :-
+
+    sta Global::OrderIdx
+    rts
 
 ; Index to song in A
 LoadSong:
@@ -305,6 +307,12 @@ LoadOrder:
 ; Process sounds for the this frame.
 ; TODO: frame/order progression
 SoundProcess:
+    lda EngineFlags
+    and #EngineFlag::Ready
+    bne :+
+    jsr SoundInit
+:
+
     ; Clear buffers
     lda #0
     sta PulseA_DutyVol
@@ -327,6 +335,11 @@ SoundProcess:
 
     lda Global::Tick
     beq :+
+    jmp @doSfx
+:
+
+    lda EngineFlags
+    bmi :+
     jmp @doSfx
 :
 
@@ -423,7 +436,12 @@ SoundProcess:
 
 
     ; TODO: music before SFX
+
 @doSfx:
+    lda EngineFlags
+    bvs :+
+    jmp @noSfx
+:
 ;    ; Check if an SFX is playing
 ;    bit SfxId
 ;    bpl @noSfx
@@ -815,10 +833,33 @@ WriteBuffers:
     sta APU::Noise_Counter
     rts
 
+; TODO: start playing the currently loaded song
+Play:
+    lda EngineFlags
+    ora #EngineFlag::EnableSong
+    sta EngineFlags
+    rts
+
+Pause:
+    lda EngineFlags
+    and #(EngineFlag::EnableSong ^ $FF)
+    sta EngineFlags
+    rts
+
+StopSfx:
+    lda EngineFlags
+    and #(EngineFlag::EnableSfx ^ $FF)
+    sta EngineFlags
+    rts
+
 PlaySfx:
     tax
     ora #$80
     sta SfxId
+
+    lda EngineFlags
+    ora #EngineFlag::EnableSfx
+    sta EngineFlags
 
     ; Clear sfx state
     lda #0

@@ -24,10 +24,21 @@
     .ident(.concat(basename, "_Release")): .res 1
     .ident(.concat(basename, "_Length")): .res 1
     .ident(.concat(basename, "_Pointer")): .res 2
+
+    .ifdef DBGPRINT
+        .out .concat(" ", .concat(basename, "_Loop"))
+        .out .concat(" ", .concat(basename, "_Release"))
+        .out .concat(" ", .concat(basename, "_Length"))
+        .out .concat(" ", .concat(basename, "_Pointer"))
+    .endif
 .endmacro
 
 ; Loaded Instruments
 .macro genInstrumentStruct basename
+    .ifdef DBGPRINT
+        .out basename
+    .endif
+
     genInstMacroStruct .concat(basename, "_Volume")
     genInstMacroStruct .concat(basename, "_Arpeggio")
     genInstMacroStruct .concat(basename, "_Pitch")
@@ -42,6 +53,15 @@
 
     .ident(.concat(basename, "_Tick")): .res 1
     .ident(.concat(basename, "_TickRate")): .res 1
+
+    .ifdef DBGPRINT
+        .out basename
+        .out .concat(" ", .concat(basename, "_Wait"))
+        .out .concat(" ", .concat(basename, "_CurrentFrame"))
+        .out .concat(" ", .concat(basename, "_ReadOffset"))
+        .out .concat(" ", .concat(basename, "_Tick"))
+        .out .concat(" ", .concat(basename, "_TickRate"))
+    .endif
 .endmacro
 
 .struct ChannelPointers
@@ -125,6 +145,7 @@ Noise_Period = $400E
 Noise_Counter = $400F
 .endenum
 
+ChannelStateStart:
 genChannelStateStruct "PulseA_State"
 genChannelStateStruct "PulseB_State"
 genChannelStateStruct "Triangle_State"
@@ -132,11 +153,12 @@ genChannelStateStruct "Noise_State"
 
 ChannelInstruments:
 genInstrumentStruct "PulseA"
-ChannelInstrumentsLength = * - ChannelInstruments
-.out .sprintf("ChannelInstrumentsLeng: %d", ChannelInstrumentsLength)
 genInstrumentStruct "PulseB"
 genInstrumentStruct "Triangle"
 genInstrumentStruct "Noise"
+ChannelStateLength = * - ChannelStateStart
+
+.out .sprintf("ChannelStateLength: %d", ChannelStateLength)
 
 PulseA_TimerLo:  .res 1 ; $4002
 PulseA_TimerHi:  .res 1 ; $4003
@@ -159,6 +181,14 @@ Noise_Counter:   .res 1 ; $400F
 ; Currently playing sound effect
 ; High bit on if playing
 SfxId: .res 1
+
+EngineFlags: .res 1
+
+.enum EngineFlag
+    Ready       = $01   ; Set if the engine has been initialized
+    EnableSong  = $80   ; If set, don't run the song (keep current values, but don't populate buffers)
+    EnableSfx   = $40   ; If set, don't run SFX (same as above)
+.endenum
 
 ; No DMC channel
 

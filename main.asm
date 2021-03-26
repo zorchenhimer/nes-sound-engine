@@ -50,7 +50,7 @@ Sleeping:       .res 1
     .byte "PAGE0"
 
 IRQ:
-    rti
+    jmp IRQ ; SOMETHING BROKE. FIND IT.
 
 RESET:
     sei         ; Disable IRQs
@@ -95,6 +95,12 @@ RESET:
     sta SoundEngine::PointerA+1
     jsr SoundEngine::SoundInit
 
+    lda #0
+    jsr SoundEngine::LoadSong
+
+    ; macro instead for play?
+    jsr SoundEngine::Play
+
 Frame:
     ; TODO: input things for sound activation
 
@@ -107,14 +113,13 @@ Frame:
     jsr SoundEngine::PlaySfx
 :
 
-    lda #BUTTON_A
-    jsr ButtonPressedP1
-    beq :+
-    lda #1
-    jsr SoundEngine::LoadSong
-:
+;    lda #BUTTON_A
+;    jsr ButtonPressedP1
+;    beq :+
+;    lda #1
+;    jsr SoundEngine::LoadSong
+;:
 
-    jsr SoundEngine::SoundProcess
     jsr WaitForNMI
     jmp Frame
 
@@ -127,7 +132,9 @@ NMI:
 
     lda #$FF
     sta Sleeping
+
     jsr SoundEngine::WriteBuffers
+    jsr SoundEngine::SoundProcess
 
     pla
     tay
