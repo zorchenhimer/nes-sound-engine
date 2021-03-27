@@ -54,6 +54,8 @@
     .ident(.concat(basename, "_Tick")): .res 1
     .ident(.concat(basename, "_TickRate")): .res 1
 
+    .ident(.concat(basename, "_Ready")): .res 1
+
     .ifdef DBGPRINT
         .out basename
         .out .concat(" ", .concat(basename, "_Wait"))
@@ -85,6 +87,7 @@ Ch_Wait: .res 1
 Ch_CurrentFrame: .res 1
 Ch_Tick: .res 1
 Ch_Id: .res 1
+Ch_Ready: .res 1
 
 ChIns_VolLoop: .res 1
 ChIns_VolRelease: .res 1
@@ -157,8 +160,10 @@ genInstrumentStruct "PulseB"
 genInstrumentStruct "Triangle"
 genInstrumentStruct "Noise"
 ChannelStateLength = * - ChannelStateStart
+ChannelInstrumentLength = * - ChannelInstruments
 
 .out .sprintf("ChannelStateLength: %d", ChannelStateLength)
+.out .sprintf("ChannelStateLength: %d", ChannelInstrumentLength)
 
 PulseA_TimerLo:  .res 1 ; $4002
 PulseA_TimerHi:  .res 1 ; $4003
@@ -178,6 +183,11 @@ Noise_Volume:    .res 1 ; $400C
 Noise_Period:    .res 1 ; $400E
 Noise_Counter:   .res 1 ; $400F
 
+PulseA_Ready:   .res 1
+PulseB_Ready:   .res 1
+Triangle_Ready:   .res 1
+Noise_Ready:   .res 1
+
 ; Currently playing sound effect
 ; High bit on if playing
 SfxId: .res 1
@@ -188,6 +198,7 @@ EngineFlags: .res 1
     Ready       = $01   ; Set if the engine has been initialized
     EnableSong  = $80   ; If set, don't run the song (keep current values, but don't populate buffers)
     EnableSfx   = $40   ; If set, don't run SFX (same as above)
+    BufferReady = $20   ; Is there something in the buffer ready to write?
 .endenum
 
 ; No DMC channel

@@ -38,17 +38,7 @@
     Volume = $C0    ; bottom nibble will be volume value
 .endenum
 
-.include "engine_ram.asm"
-.include "notes.i" ; TODO PAL
-
-; Turn things on
-; Pointer to SongMeta in PointerA
-SoundInit:
-    ; Disable length counter
-    lda #$7F
-    sta PulseA_DutyVol
-    sta PulseB_DutyVol
-
+.macro clearBuffers
     ; Clear Buffers
     lda #$08    ; disable sweep and set the negate flag
     sta PulseA_Sweep
@@ -76,6 +66,20 @@ SoundInit:
     sta $4011
     sta $4012
     sta $4013
+.endmacro
+
+.include "engine_ram.asm"
+.include "notes.i" ; TODO PAL
+
+; Turn things on
+; Pointer to SongMeta in PointerA
+SoundInit:
+    ; Disable length counter
+    lda #$7F
+    sta PulseA_DutyVol
+    sta PulseB_DutyVol
+
+    clearBuffers
 
     ;jsr resetChannelStates
 
@@ -107,6 +111,7 @@ SoundInit:
 
     ; Enable everything (make this configurable?)
     lda #Enable::PulseA | Enable::PulseB | Enable::Triangle | Enable::Noise
+    ;lda #Enable::PulseB
     sta $4015
     rts
 
@@ -137,6 +142,8 @@ LoadSong:
     lda #0
     sta Global::OrderIdx
     sta Global::CurrentRow
+
+    lda #$0F    ; TODO: figure this out from the speed and tempo of the song
     sta Global::Tick
 
     ; Get the song list pointer
@@ -302,6 +309,8 @@ LoadOrder:
     sta .ident(.concat(channelname, "_State_ReadOffset"))
     lda Ch_Tick
     sta .ident(.concat(channelname, "_State_Tick"))
+    lda Ch_Ready
+    sta .ident(.concat(channelname, "_State_Ready"))
 .endmacro
 
 ; Process sounds for the this frame.
@@ -313,33 +322,20 @@ SoundProcess:
     jsr SoundInit
 :
 
-    ; Clear buffers
-    lda #0
-    sta PulseA_DutyVol
-    sta PulseA_Sweep
-    sta PulseA_TimerLo
-    sta PulseA_TimerHi
+    clearBuffers
 
-    sta PulseB_DutyVol
-    sta PulseB_Sweep
-    sta PulseB_TimerLo
-    sta PulseB_TimerHi
-
-    sta Triangle_Counter
-    sta Triangle_TimerLo
-    sta Triangle_TimerHi
-
-    sta Noise_Volume
-    sta Noise_Period
-    sta Noise_Counter
-
+    dec Global::Tick
     lda Global::Tick
     beq :+
-    jmp @doSfx
+    rts  ; it's not time to do anything yet.
 :
+    ; Reset ticks
+    ; TODO: Calculate this value from the Tempo
+    lda #$0F
+    sta Global::Tick
 
     lda EngineFlags
-    bmi :+
+    bmi :+  ; EngineFlag:EnableSong
     jmp @doSfx
 :
 
@@ -439,7 +435,7 @@ SoundProcess:
 
 @doSfx:
     lda EngineFlags
-    bvs :+
+    bvs :+ ; EngineFlag::EnableSfx
     jmp @noSfx
 :
 ;    ; Check if an SFX is playing
@@ -492,6 +488,9 @@ SoundProcess:
 ;@decTick:
 ;    dec Sfx_State + SfxState::Ticks
 @noSfx:
+    lda EngineFlags
+    ora #EngineFlag::BufferReady
+    sta EngineFlags
     rts
 
 ; Increment the data pointer and return
@@ -503,16 +502,22 @@ SoundProcess:
 processChannelNoise:
     rts
 
+doubleIncChannel:
+    ;lda Offset
+    ;clc
+    ;adc #2
+    ;sta Offset
+    ;jmp processChannel
+    inc Offset
+
 incrementChannel:
-    ; increment data pointer and fall through
+    ; increment data offset and fall through
     ; to processChannel
-    ;ldy #ChannelState::ReadOffset
-    ;lda (PointerB), y
-    lda Offset
-    clc
-    adc #1
-    ;sta (PointerB), y
-    sta Offset
+    ;lda Offset
+    ;clc
+    ;adc #1
+    ;sta Offset
+    inc Offset
 
 ; SongMeta
 ;   SongList
@@ -563,6 +568,7 @@ processChannel:
     rts
 :
 
+;processContinue:
     ; Get Frame list
     ldy #ChannelPointers::Frames
     lda (PointerA), y ; points to frameList
@@ -592,16 +598,22 @@ processChannel:
     sta Ch_Tick
 
     ; Store note Hi value in buffer
-    ldx Data
+    lda Data
+    asl a   ; note table is a word table
+    tax
     lda NoteTable, x
-    ldy #0
+    ldy #1
     sta (PointerD), y
 
     ; Store note Lo value in buffer
     inx
     lda NoteTable, x
-    iny
+    dey
     sta (PointerD), y
+    inc Offset
+
+    lda #1
+    sta Ch_Ready
 
     ; TODO: Do instrument stuff
 
@@ -768,7 +780,7 @@ cmdFnInstrument:
 
     ; TODO: the rest of the macros, lol
 
-    jmp incrementChannel
+    jmp doubleIncChannel
 
 cmdFnWait:
     ; Get argument
@@ -799,8 +811,25 @@ cmdFnHalt:
 
 ; Write buffers to the APU
 WriteBuffers:
+    lda EngineFlags
+    and #EngineFlag::BufferReady
+    bne :+
+    rts
+:
+    ; Turn off ready flag
+    lda EngineFlags
+    and #(EngineFlag::BufferReady ^ $FF)
+    sta EngineFlags
+
     ; TODO: update flags?
+    lda PulseA_State_Ready
+    beq :+
+    lda #0
+    sta PulseA_State_Ready
+
     lda PulseA_DutyVol
+    ora #$30    ; disable length counter
+    ora #$0F    ; force full volume for now
     sta APU::PulseA_DutyVol
     lda PulseA_Sweep
     sta APU::PulseA_Sweep
@@ -808,8 +837,16 @@ WriteBuffers:
     sta APU::PulseA_TimerLo
     lda PulseA_TimerHi
     sta APU::PulseA_TimerHi
+:
+
+    lda PulseB_State_Ready
+    beq :+
+    lda #0
+    sta PulseB_State_Ready
 
     lda PulseB_DutyVol
+    ora #$30    ; disable length counter
+    ora #$0F    ; force full volume for now
     sta APU::PulseB_DutyVol
     lda PulseB_Sweep
     sta APU::PulseB_Sweep
@@ -817,15 +854,25 @@ WriteBuffers:
     sta APU::PulseB_TimerLo
     lda PulseB_TimerHi
     sta APU::PulseB_TimerHi
+:
 
-    lda Triangle_Counter
+    lda Triangle_State_Ready
+    beq :+
+    lda #0
+    sta Triangle_State_Ready
+
+    ;lda Triangle_Counter
+    ;ora #$80    ; disable length counter
+    lda #$FF
     sta APU::Triangle_Counter
     lda Triangle_TimerLo
     sta APU::Triangle_TimerLo
     lda Triangle_TimerHi
     sta APU::Triangle_TimerHi
+:
 
     lda Noise_Volume
+    ora #$10    ; force constant volume
     sta APU::Noise_Volume
     lda Noise_Period
     sta APU::Noise_Period
