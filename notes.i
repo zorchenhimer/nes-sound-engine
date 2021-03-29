@@ -1,146 +1,106 @@
-;Note: octaves in music traditionally start at C, not A    
+;Note: octaves in music traditionally start at C, not A
 .enum Note
-A1 = $00    ;the "1" means Octave 1
-As1 = $01   ;the "s" means "sharp"
-Bb1 = $01   ;the "b" means "flat"  A# == Bb, so same value
-B1 = $02
+A1
+As1 ; Bb
+B1
+C1
+Cs1 ; Db
+D1
+Ds1 ; Eb
+E1
+F1
+Fs1 ; Gb
+G1
+Gs1
 
-C2 = $03
-Cs2 = $04
-Db2 = $04
-D2 = $05
-Ds2 = $06
-Eb2 = $06
-E2 = $07
-F2 = $08
-Fs2 = $09
-Gb2 = $09
-G2 = $0A
-Gs2 = $0B
-Ab2 = $0B
-A2 = $0C
-As2 = $0D
-Bb2 = $0D
-B2 = $0E
+A2
+As2
+B2
+C2
+Cs2
+D2
+Ds2
+E2
+F2
+Fs2
+G2
+Gs2
 
-C3 = $0F
-Cs3 = $10
-Db3 = $10
-D3 = $11
-Ds3 = $12
-Eb3 = $12
-E3 = $13
-F3 = $14
-Fs3 = $15
-Gb3 = $15
-G3 = $16
-Gs3 = $17
-Ab3 = $17
-A3 = $18
-As3 = $19
-Bb3 = $19
-B3 = $1a
+A3
+As3
+B3
+C3
+Cs3
+D3
+Ds3
+E3
+F3
+Fs3
+G3
+Gs3
 
-C4 = $1b
-Cs4 = $1c
-Db4 = $1c
-D4 = $1d
-Ds4 = $1e
-Eb4 = $1e
-E4 = $1f
-F4 = $20
-Fs4 = $21
-Gb4 = $21
-G4 = $22
-Gs4 = $23
-Ab4 = $23
-A4 = $24
-As4 = $25
-Bb4 = $25
-B4 = $26
+A4
+As4
+B4
+C4
+Cs4
+D4
+Ds4
+E4
+F4
+Fs4
+G4
+Gs4
 
-C5 = $27
-Cs5 = $28
-Db5 = $28
-D5 = $29
-Ds5 = $2a
-Eb5 = $2a
-E5 = $2b
-F5 = $2c
-Fs5 = $2d
-Gb5 = $2d
-G5 = $2e
-Gs5 = $2f
-Ab5 = $2f
-A5 = $30
-As5 = $31
-Bb5 = $31
-B5 = $32
+A5
+As5
+B5
+C5
+Cs5
+D5
+Ds5
+E5
+F5
+Fs5
+G5
+Gs5
 
-C6 = $33
-Cs6 = $34
-Db6 = $34
-D6 = $35
-Ds6 = $36
-Eb6 = $36
-E6 = $37
-F6 = $38
-Fs6 = $39
-Gb6 = $39
-G6 = $3a
-Gs6 = $3b
-Ab6 = $3b
-A6 = $3c
-As6 = $3d
-Bb6 = $3d
-B6 = $3e
+A6
+As6
+B6
+C6
+Cs6
+D6
+Ds6
+E6
+F6
+Fs6
+G6
+Gs6
 
-C7 = $3f
-Cs7 = $40
-Db7 = $40
-D7 = $41
-Ds7 = $42
-Eb7 = $42
-E7 = $43
-F7 = $44
-Fs7 = $45
-Gb7 = $45
-G7 = $46
-Gs7 = $47
-Ab7 = $47
-A7 = $48
-As7 = $49
-Bb7 = $49
-B7 = $4a
+A7
+As7
+B7
+C7
+Cs7
+D7
+Ds7
+E7
+F7
+Fs7
+G7
+Gs7
 
-C8 = $4b
-Cs8 = $4c
-Db8 = $4c
-D8 = $4d
-Ds8 = $4e
-Eb8 = $4e
-E8 = $4f
-F8 = $50
-Fs8 = $51
-Gb8 = $51
-G8 = $52
-Gs8 = $53
-Ab8 = $53
-A8 = $54
-As8 = $55
-Bb8 = $55
-B8 = $56
-
-C9 = $57
-Cs9 = $58
-Db9 = $58
-D9 = $59
-Ds9 = $5a
-Eb9 = $5a
-E9 = $5b
-F9 = $5c
-Fs9 = $5d
-Gb9 = $5d
+A8
+As8
+B8
+C8
+Cs8
+D8
+Ds8
+E8
+F8
+Fs8
 .endenum
 
-.include "note_table.i" ; TODO: PAL
+.include "note_table.i"

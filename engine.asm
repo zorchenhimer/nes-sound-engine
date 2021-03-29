@@ -602,13 +602,13 @@ processChannel:
     asl a   ; note table is a word table
     tax
     lda NoteTable, x
-    ldy #1
+    ldy #0
     sta (PointerD), y
 
     ; Store note Lo value in buffer
     inx
     lda NoteTable, x
-    dey
+    iny
     sta (PointerD), y
     inc Offset
 
