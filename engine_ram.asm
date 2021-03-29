@@ -193,6 +193,7 @@ Noise_Ready:   .res 1
 SfxId: .res 1
 
 EngineFlags: .res 1
+GoToOrder:   .res 1
 
 .enum EngineFlag
     Ready       = $01   ; Set if the engine has been initialized

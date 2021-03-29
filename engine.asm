@@ -251,10 +251,13 @@ LoadSong:
 
     lda #0
     sta .ident(.concat(channelname, "_State_ReadOffset"))
+    sta .ident(.concat(channelname, "_State_Wait"))
 
 .endmacro
 
 NextOrder:
+    sta Global::CurrentRow
+
     ; Go to next frame in order
     inc Global::OrderIdx
     lda Global::OrderIdx
@@ -343,6 +346,14 @@ SoundProcess:
     lda #15
     sta Global::Tick
 
+    lda GoToOrder
+    beq :+
+    and #$7F
+    jsr NextOrder
+    lda #0
+    sta GoToOrder
+:
+
     ;
     ; Pulse A
     ;
@@ -422,6 +433,7 @@ SoundProcess:
     cmp Global::Rows
 
     bcc :+
+    lda #0
     jsr NextOrder
 :
 
@@ -697,7 +709,9 @@ cmdFnSkip:
     beq :+
     brk ; Skip argument non-zero!
 :
-    jmp NextOrder
+    ora #$80
+    sta GoToOrder
+    rts ; TODO: verify this is correct
 
 cmdFnSpeedTempo:
     jmp incrementChannel
