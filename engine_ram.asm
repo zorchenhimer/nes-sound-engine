@@ -83,11 +83,10 @@ PointerInstrument: .res 2
 PointerMacro:   .res 2
 
 Ch_Wait: .res 1
-;Ch_ReadOffset: .res 1   ; use Offset
 Ch_CurrentFrame: .res 1
 Ch_Tick: .res 1
 Ch_Id: .res 1
-Ch_Ready: .res 1
+Ch_Ready: .res 1 ; buffer update flag
 
 ChIns_VolLoop: .res 1
 ChIns_VolRelease: .res 1

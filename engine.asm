@@ -819,9 +819,14 @@ cmdFnDeltaCounter:
     jmp incrementChannel
 cmdFnDisable:
     jmp incrementChannel
+
+; Stop the currently playing instrument for the current channel.
 cmdFnHalt:
-    brk ; TODO: stop all processing for current song
-    ;jmp channelDone
+    ; TODO: write this after instruments are implemented
+    lda #1
+    sta Ch_Ready
+    inc Offset
+    rts
 
 ; Write buffers to the APU
 WriteBuffers:
