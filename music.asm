@@ -1,7 +1,5 @@
 ; asmsyntax=ca65
 
-.byte "Song Data Start"
-
 SongMeta:
 	.word SongList
 	.word InstrumentList
