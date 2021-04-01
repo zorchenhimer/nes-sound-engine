@@ -111,7 +111,6 @@ SoundInit:
 
     ; Enable everything (make this configurable?)
     lda #Enable::PulseA | Enable::PulseB | Enable::Triangle | Enable::Noise
-    ;lda #Enable::PulseB
     sta $4015
     rts
 
@@ -419,14 +418,16 @@ SoundProcess:
     lda #>Noise_Pointers
     sta PointerA+1
 
-    lda #<Noise_Volume
+    lda #<Noise_Period
     sta PointerD+0
-    lda #>Noise_Volume
+    lda #>Noise_Period
     sta PointerD+1
 
-    lda #2
+    loadProcessVars "Noise"
+    lda #3
     sta Ch_Id
-    jsr processChannelNoise
+    jsr processChannel
+    saveProcessVars "Noise"
 
     inc Global::CurrentRow
     lda Global::CurrentRow
@@ -510,9 +511,6 @@ SoundProcess:
 ;    ldy #ChannelState::ReadOffset
 ;    inc (PointerB), y
 ;    rts
-
-processChannelNoise:
-    rts
 
 doubleIncChannel:
     ;lda Offset
@@ -609,6 +607,19 @@ processChannel:
     lda #0
     sta Ch_Tick
 
+    lda Ch_Id
+    cmp #3
+    bne :+
+    ; Noise stuff
+    lda Data
+    ldy #0
+    sta (PointerD), y
+    inc Offset
+    lda #1
+    sta Ch_Ready
+    rts
+:
+    ; Not noise stuff
     ; Store note Hi value in buffer
     lda Data
     asl a   ; note table is a word table
@@ -855,6 +866,7 @@ WriteBuffers:
     lda PulseA_TimerLo
     sta APU::PulseA_TimerLo
     lda PulseA_TimerHi
+    ora #$F0
     sta APU::PulseA_TimerHi
 :
 
@@ -872,6 +884,7 @@ WriteBuffers:
     lda PulseB_TimerLo
     sta APU::PulseB_TimerLo
     lda PulseB_TimerHi
+    ora #$F0
     sta APU::PulseB_TimerHi
 :
 
@@ -887,16 +900,25 @@ WriteBuffers:
     lda Triangle_TimerLo
     sta APU::Triangle_TimerLo
     lda Triangle_TimerHi
+    ora #$F0
     sta APU::Triangle_TimerHi
 :
 
+    lda Noise_State_Ready
+    beq :+
+    lda #0
+    sta Noise_State_Ready
+
     lda Noise_Volume
-    ora #$10    ; force constant volume
+    ora #$30    ; force constant volume
+    ora #$0F    ; force full volume (for now)
     sta APU::Noise_Volume
     lda Noise_Period
     sta APU::Noise_Period
-    lda Noise_Counter
+    ;lda Noise_Counter
+    lda #$FF
     sta APU::Noise_Counter
+:
     rts
 
 ; TODO: start playing the currently loaded song
