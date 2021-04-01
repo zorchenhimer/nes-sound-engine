@@ -143,11 +143,10 @@ LoadSong:
     sta Global::OrderIdx
     sta Global::CurrentRow
 
-    lda #$0F    ; TODO: figure this out from the speed and tempo of the song
-    sta Global::Tick
-
     ; Get the song list pointer
-    ldy #0
+    txa
+    asl a
+    tay
     lda (SongListPointer), y
     sta PointerA+0
     iny
@@ -155,14 +154,18 @@ LoadSong:
     sta PointerA+1
 
     ; PointerA is a pointer to the song metadata
-    txa
-    tay
+    ldy #0
     lda (PointerA), y
     sta Global::Rows
 
     iny
     lda (PointerA), y
     sta Global::Speed
+
+    ; Don't wait after loading a song for the first tick
+    ; Start at 1 because it's DEC'd before check
+    lda #1
+    sta Global::Tick
 
     iny
     lda (PointerA), y
@@ -330,21 +333,18 @@ SoundProcess:
     dec Global::Tick
     lda Global::Tick
     beq :+
-    rts  ; it's not time to do anything yet.
+    ; it's not time to read the next row
+    jmp @doInstruments
 :
     ; Reset ticks
-    ; TODO: Calculate this value from the Tempo
-    lda #$0F
+    ; Note/Command read rate
+    lda Global::Speed
     sta Global::Tick
 
     lda EngineFlags
     bmi :+  ; EngineFlag:EnableSong
     jmp @doSfx
 :
-
-    ; Row read tick rate
-    lda #15
-    sta Global::Tick
 
     lda GoToOrder
     beq :+

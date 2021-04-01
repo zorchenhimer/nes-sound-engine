@@ -95,7 +95,7 @@ RESET:
     sta SoundEngine::PointerA+1
     jsr SoundEngine::SoundInit
 
-    lda #0
+    lda #1
     jsr SoundEngine::LoadSong
 
     ; macro instead for play?
