@@ -23,12 +23,16 @@
     .ident(.concat(basename, "_Loop")): .res 1
     .ident(.concat(basename, "_Release")): .res 1
     .ident(.concat(basename, "_Length")): .res 1
+    .ident(.concat(basename, "_Offset")): .res 1    ; read offset
+    .ident(.concat(basename, "_Running")): .res 1   ; Macro currently running; TODO: rename this flags?
     .ident(.concat(basename, "_Pointer")): .res 2
 
     .ifdef DBGPRINT
         .out .concat(" ", .concat(basename, "_Loop"))
         .out .concat(" ", .concat(basename, "_Release"))
         .out .concat(" ", .concat(basename, "_Length"))
+        .out .concat(" ", .concat(basename, "_Offset"))
+        .out .concat(" ", .concat(basename, "_Running"))
         .out .concat(" ", .concat(basename, "_Pointer"))
     .endif
 .endmacro
@@ -54,11 +58,11 @@
     .ident(.concat(basename, "_Tick")): .res 1
     .ident(.concat(basename, "_TickRate")): .res 1
 
+    .ident(.concat(basename, "_LastNote")): .res 1 ; Index of last note read
     .ident(.concat(basename, "_Ready")): .res 1
 
     .ifdef DBGPRINT
         .out basename
-        .out .concat(" ", .concat(basename, "_Wait"))
         .out .concat(" ", .concat(basename, "_CurrentFrame"))
         .out .concat(" ", .concat(basename, "_ReadOffset"))
         .out .concat(" ", .concat(basename, "_Tick"))
@@ -87,6 +91,12 @@ Ch_CurrentFrame: .res 1
 Ch_Tick: .res 1
 Ch_Id: .res 1
 Ch_Ready: .res 1 ; buffer update flag
+Ch_Length: .res 1
+Ch_Note: .res 1
+Ch_Running: .res 1
+Ch_InstOffset: .res 1
+Ch_Pointer: .res 1   ; pointer to macro data
+Ch_InstId: .res 1
 
 ChIns_VolLoop: .res 1
 ChIns_VolRelease: .res 1
@@ -152,17 +162,20 @@ genChannelStateStruct "PulseA_State"
 genChannelStateStruct "PulseB_State"
 genChannelStateStruct "Triangle_State"
 genChannelStateStruct "Noise_State"
+JustStateLength = * - ChannelStateStart
 
 ChannelInstruments:
 genInstrumentStruct "PulseA"
+SingleChannelInstrumentLength = (* - ChannelInstruments)
 genInstrumentStruct "PulseB"
 genInstrumentStruct "Triangle"
 genInstrumentStruct "Noise"
 ChannelStateLength = * - ChannelStateStart
 ChannelInstrumentLength = * - ChannelInstruments
 
+.out .sprintf("One instrument struct length: %d", SingleChannelInstrumentLength)
 .out .sprintf("ChannelStateLength: %d", ChannelStateLength)
-.out .sprintf("ChannelStateLength: %d", ChannelInstrumentLength)
+.out .sprintf("ChannelInstrumentLength: %d", ChannelInstrumentLength)
 
 PulseA_TimerLo:  .res 1 ; $4002
 PulseA_TimerHi:  .res 1 ; $4003
@@ -186,6 +199,24 @@ PulseA_Ready:   .res 1
 PulseB_Ready:   .res 1
 Triangle_Ready:   .res 1
 Noise_Ready:   .res 1
+
+.enum BufferReady
+    TimerLo = 1 << 0    ; Pulse, Triangle
+    Volume  = 1 << 0    ; Noise
+
+    TimerHi = 1 << 1    ; Pulse, Triangle
+    Period  = 1 << 1    ; Noise
+
+    DutyVol = 1 << 2    ; Pulse
+    Counter = 1 << 2    ; Triangle, Noise
+
+    Sweep   = 1 << 3    ; Pulse
+.endEnum
+
+PulseA_InstId: .res 1
+PulseB_InstId: .res 1
+Triangle_InstId: .res 1
+Noise_InstId: .res 1
 
 ; Currently playing sound effect
 ; High bit on if playing
@@ -226,11 +257,5 @@ GoToOrder:   .res 1
     Period  = 1 << 1
     Counter = 1 << 2
 .endenum
-
-; Low bits PulseA, hi bits PulseB
-sndFlags_Pulse:     .res 1
-
-; xTTT xNNN
-sndFlags_TriNoise:  .res 1
 .popseg
 

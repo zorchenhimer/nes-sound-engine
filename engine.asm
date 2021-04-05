@@ -110,7 +110,8 @@ SoundInit:
     sta EngineFlags
 
     ; Enable everything (make this configurable?)
-    lda #Enable::PulseA | Enable::PulseB | Enable::Triangle | Enable::Noise
+    ;lda #Enable::PulseA | Enable::PulseB | Enable::Triangle | Enable::Noise
+    lda #Enable::PulseA | Enable::PulseB
     sta $4015
     rts
 
@@ -298,24 +299,62 @@ LoadOrder:
     loadOrder "Noise"
     rts
 
-.macro loadProcessVars channelname
-    lda .ident(.concat(channelname, "_State_Wait"))
+.macro loadProcessVars channelName
+    lda .ident(.concat(channelName, "_State_Wait"))
     sta Ch_Wait
-    lda .ident(.concat(channelname, "_State_ReadOffset"))
+    lda .ident(.concat(channelName, "_State_ReadOffset"))
     sta Offset
-    lda .ident(.concat(channelname, "_State_Tick"))
+    lda .ident(.concat(channelName, "_State_Tick"))
     sta Ch_Tick
+    lda .ident(.concat(channelName, "_Volume_Offset"))
+    sta Ch_InstOffset
 .endmacro
 
-.macro saveProcessVars channelname
+.macro saveProcessVars channelName
     lda Ch_Wait
-    sta .ident(.concat(channelname, "_State_Wait"))
+    sta .ident(.concat(channelName, "_State_Wait"))
     lda Offset
-    sta .ident(.concat(channelname, "_State_ReadOffset"))
+    sta .ident(.concat(channelName, "_State_ReadOffset"))
     lda Ch_Tick
-    sta .ident(.concat(channelname, "_State_Tick"))
+    sta .ident(.concat(channelName, "_State_Tick"))
     lda Ch_Ready
-    sta .ident(.concat(channelname, "_State_Ready"))
+    ora .ident(.concat(channelName, "_Ready"))
+    sta .ident(.concat(channelName, "_Ready"))
+    lda Ch_Note
+    sta .ident(.concat(channelName, "_State_LastNote"))
+
+    lda Ch_InstOffset
+    sta .ident(.concat(channelName, "_Volume_Offset"))
+    lda Ch_Running
+    sta .ident(.concat(channelName, "_Volume_Running"))
+
+    lda Ch_InstId
+    sta .ident(.concat(channelName, "_InstId"))
+.endmacro
+
+.macro loadInstrumentVars channelName
+    lda .ident(.concat(channelName, "_State_LastNote"))
+    sta Ch_Note
+    lda .ident(.concat(channelName, "_Volume_Offset"))
+    sta Ch_InstOffset
+    lda .ident(.concat(channelName, "_Volume_Length"))
+    sta Ch_Length
+    lda .ident(.concat(channelName, "_Volume_Running"))
+    sta Ch_Running
+
+
+    lda .ident(.concat(channelName, "_Volume_Pointer"))+0
+    sta PointerA+0
+    lda .ident(.concat(channelName, "_Volume_Pointer"))+1
+    sta PointerA+1
+.endmacro
+
+.macro saveInstrumentVars channelName
+    lda Ch_InstOffset
+    sta .ident(.concat(channelName, "_Volume_Offset"))
+    lda Ch_Ready
+    ora .ident(.concat(channelName, "_Ready"))
+    sta .ident(.concat(channelName, "_Ready"))
 .endmacro
 
 ; Process sounds for the this frame.
@@ -442,7 +481,25 @@ SoundProcess:
 
 @doInstruments:
     ; do instrument stuff
+    loadInstrumentVars "PulseA"
+    lda #<PulseA_DutyVol
+    sta PointerD+0
+    lda #>PulseA_DutyVol
+    sta PointerD+1
+    lda #0
+    sta Ch_Id
+    jsr processInstrument
+    saveInstrumentVars "PulseA"
 
+    loadInstrumentVars "PulseB"
+    lda #<PulseB_DutyVol
+    sta PointerD+0
+    lda #>PulseB_DutyVol
+    sta PointerD+1
+    lda #1
+    sta Ch_Id
+    jsr processInstrument
+    saveInstrumentVars "PulseB"
 
     ; TODO: music before SFX
 
@@ -512,21 +569,46 @@ SoundProcess:
 ;    inc (PointerB), y
 ;    rts
 
+; PointerA - VolumeMacro Pointer
+; PointerD - DutyVolume buffer
+processInstrument:
+    ; verify running
+    ; check offset against length
+    ;   set running approriately
+    ; load the pointer to the macro data (already in PointerA)
+    ; read macro data and apply
+
+    lda #0
+    sta Ch_Ready
+
+    lda Ch_Running
+    bne :+
+    rts
+:
+
+    lda Ch_InstOffset
+    cmp Ch_Length
+    bcc :+
+    ; done
+    lda #0
+    sta Ch_Running
+    rts
+:
+
+    tay
+    lda (PointerA), y   ; pointer to volume data
+    ldy #0
+    sta (PointerD), y   ; buffer
+    inc Ch_InstOffset
+
+    lda #BufferReady::DutyVol
+    sta Ch_Ready
+    rts
+
 doubleIncChannel:
-    ;lda Offset
-    ;clc
-    ;adc #2
-    ;sta Offset
-    ;jmp processChannel
     inc Offset
 
 incrementChannel:
-    ; increment data offset and fall through
-    ; to processChannel
-    ;lda Offset
-    ;clc
-    ;adc #1
-    ;sta Offset
     inc Offset
 
 ; SongMeta
@@ -569,6 +651,9 @@ processChannel:
     ; If note, play it
     ; else, act on command
 
+    lda #0
+    sta Ch_Ready
+
     ; Check for wait. if !zero, decrement and return
     lda Ch_Wait
     beq :+
@@ -578,7 +663,6 @@ processChannel:
     rts
 :
 
-;processContinue:
     ; Get Frame list
     ldy #ChannelPointers::Frames
     lda (PointerA), y ; points to frameList
@@ -615,7 +699,7 @@ processChannel:
     ldy #0
     sta (PointerD), y
     inc Offset
-    lda #1
+    lda #BufferReady::Period
     sta Ch_Ready
     rts
 :
@@ -635,11 +719,13 @@ processChannel:
     sta (PointerD), y
     inc Offset
 
-    lda #1
+    lda #BufferReady::TimerLo | BufferReady::TimerHi
     sta Ch_Ready
 
-    ; TODO: Do instrument stuff
-
+    lda #1
+    sta Ch_Running
+    lda #0
+    sta Ch_InstOffset
     rts
 
 @doCommand:
@@ -749,6 +835,7 @@ cmdFnInstrument:
     ; Get argument
     iny
     lda (PointerFrame), y
+    sta Ch_InstId
     asl a ; index -> offset
     tay
 
@@ -770,8 +857,11 @@ cmdFnInstrument:
     lda (MacroListPointer), y
     sta PointerMacro+1
 
+    .if SingleChannelInstrumentLength <> 35
+        .error "Instrument Length missmatch"
+    .endif
     ldx Ch_Id
-    lda Mult25, x
+    lda Mult35, x
     tax
 
     ; Volume Loop
@@ -791,16 +881,29 @@ cmdFnInstrument:
     lda (PointerMacro), y
     sta ChannelInstruments, x
 
+    ; Offset
+    inx
+    lda #0
+    sta ChannelInstruments, x
+
+    ; Running
+    inx
+    sta ChannelInstruments, x
 
     ; Volume Pointer
+    lda PointerMacro+0
+    clc
+    adc #3
+    sta PointerMacro+0
+    bcc :+
+    inc PointerMacro+1
+:
     inx
-    ldy #3
-    lda (PointerMacro), y
+    lda PointerMacro+0
     sta ChannelInstruments, x
 
     inx
-    ldy #4
-    lda (PointerMacro), y
+    lda PointerMacro+1
     sta ChannelInstruments, x
 
     ; TODO: the rest of the macros, lol
@@ -851,48 +954,78 @@ WriteBuffers:
     and #(EngineFlag::BufferReady ^ $FF)
     sta EngineFlags
 
-    ; TODO: update flags?
-    lda PulseA_State_Ready
+    ;;
+    ;; Pulse A
+    ;;
+    lda PulseA_Ready
+    and #BufferReady::DutyVol ; DutyVol
     beq :+
-    lda #0
-    sta PulseA_State_Ready
-
     lda PulseA_DutyVol
     ora #$30    ; disable length counter
-    ora #$0F    ; force full volume for now
     sta APU::PulseA_DutyVol
+:
+    lda PulseA_Ready
+    and #BufferReady::Sweep ; Sweep
+    beq :+
     lda PulseA_Sweep
     sta APU::PulseA_Sweep
+:
+    lda PulseA_Ready
+    and #BufferReady::TimerLo   ; TimerLo
+    beq :+
     lda PulseA_TimerLo
     sta APU::PulseA_TimerLo
+:
+    lda PulseA_Ready
+    and #BufferReady::TimerHi   ; TimerHi
+    beq :+
     lda PulseA_TimerHi
     ora #$F0
     sta APU::PulseA_TimerHi
 :
-
-    lda PulseB_State_Ready
-    beq :+
     lda #0
-    sta PulseB_State_Ready
+    sta PulseA_Ready
 
+    ;;
+    ;; Pulse B
+    ;;
+    lda PulseB_Ready
+    and #BufferReady::DutyVol ; DutyVol
+    beq :+
     lda PulseB_DutyVol
     ora #$30    ; disable length counter
-    ora #$0F    ; force full volume for now
     sta APU::PulseB_DutyVol
+:
+    lda PulseB_Ready
+    and #BufferReady::Sweep ; Sweep
+    beq :+
     lda PulseB_Sweep
     sta APU::PulseB_Sweep
+:
+    lda PulseB_Ready
+    and #BufferReady::TimerLo ; TimerLo
+    beq :+
     lda PulseB_TimerLo
     sta APU::PulseB_TimerLo
+:
+    lda PulseB_Ready
+    and #BufferReady::TimerHi ; TimerHi
+    beq :+
     lda PulseB_TimerHi
     ora #$F0
     sta APU::PulseB_TimerHi
 :
+    lda #0
+    sta PulseB_Ready
 
     lda Triangle_State_Ready
     beq :+
     lda #0
     sta Triangle_State_Ready
 
+    ;;
+    ;; Triangle
+    ;;
     ;lda Triangle_Counter
     ;ora #$80    ; disable length counter
     lda #$FF
@@ -904,6 +1037,9 @@ WriteBuffers:
     sta APU::Triangle_TimerHi
 :
 
+    ;;
+    ;; Noise
+    ;;
     lda Noise_State_Ready
     beq :+
     lda #0
@@ -1028,8 +1164,7 @@ sfxA:
 
 .endscope
 
-
-Mult25:
+Mult35:
     .repeat 5, i
-        .byte (i * 25)
+        .byte (i * 35)
     .endrepeat
