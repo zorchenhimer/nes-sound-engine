@@ -232,7 +232,7 @@ type instrument struct {
 }
 
 func (inst instrument) Label() string {
-	return fmt.Sprintf("inst_%d", inst.Id)
+	return fmt.Sprintf("inst_%02X", inst.Id)
 }
 
 func (inst instrument) String() string {

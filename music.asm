@@ -191,16 +191,22 @@ macro_4_9:
 
 
 InstrumentList:
-	.word inst_0
-	.word inst_1
-	.word inst_2
-	.word inst_3
-	.word inst_4
-	.word inst_5
-	.word inst_6
-	.word inst_7
-	.word inst_8
-	.word inst_9
+	.word inst_00
+	.word inst_01
+	.word inst_02
+	.word inst_03
+	.word inst_04
+	.word inst_05
+	.word inst_06
+	.word inst_07
+	.word inst_08
+	.word inst_09
+	.word inst_0A
+	.word inst_0B
+	.word inst_0C
+	.word inst_0D
+	.word inst_0E
+	.word inst_0F
 	.word inst_10
 	.word inst_11
 	.word inst_12
@@ -208,14 +214,8 @@ InstrumentList:
 	.word inst_14
 	.word inst_15
 	.word inst_16
-	.word inst_17
-	.word inst_18
-	.word inst_19
-	.word inst_20
-	.word inst_21
-	.word inst_22
 ; Kick
-inst_0:
+inst_00:
 	.byte 1
 	.byte 16
 	.byte 255
@@ -223,7 +223,7 @@ inst_0:
 	.byte 9
 
 ; Snare Sq
-inst_1:
+inst_01:
 	.byte 2
 	.byte 17
 	.byte 255
@@ -231,7 +231,7 @@ inst_1:
 	.byte 9
 
 ; Quiet Hat Closed
-inst_2:
+inst_02:
 	.byte 4
 	.byte 19
 	.byte 255
@@ -239,7 +239,7 @@ inst_2:
 	.byte 255
 
 ; Quiet Hat Open
-inst_3:
+inst_03:
 	.byte 5
 	.byte 19
 	.byte 255
@@ -247,7 +247,7 @@ inst_3:
 	.byte 255
 
 ; Bass V10 PW2
-inst_4:
+inst_04:
 	.byte 0
 	.byte 255
 	.byte 255
@@ -255,7 +255,7 @@ inst_4:
 	.byte 9
 
 ; Bass V10 PW2 w/ Perc
-inst_5:
+inst_05:
 	.byte 3
 	.byte 18
 	.byte 255
@@ -263,7 +263,7 @@ inst_5:
 	.byte 9
 
 ; Swell V1-10 PW0
-inst_6:
+inst_06:
 	.byte 6
 	.byte 255
 	.byte 255
@@ -271,7 +271,7 @@ inst_6:
 	.byte 255
 
 ; Decay 10-10 PW0
-inst_7:
+inst_07:
 	.byte 7
 	.byte 255
 	.byte 255
@@ -279,7 +279,7 @@ inst_7:
 	.byte 255
 
 ; Swell V1-10 PW1
-inst_8:
+inst_08:
 	.byte 6
 	.byte 255
 	.byte 255
@@ -287,7 +287,7 @@ inst_8:
 	.byte 10
 
 ; Decay 10-10 PW1
-inst_9:
+inst_09:
 	.byte 7
 	.byte 255
 	.byte 255
@@ -295,7 +295,7 @@ inst_9:
 	.byte 10
 
 ; Swell V1-10 PW2
-inst_10:
+inst_0A:
 	.byte 6
 	.byte 255
 	.byte 255
@@ -303,7 +303,7 @@ inst_10:
 	.byte 9
 
 ; Decay 10-10 PW2
-inst_11:
+inst_0B:
 	.byte 8
 	.byte 255
 	.byte 255
@@ -311,7 +311,7 @@ inst_11:
 	.byte 9
 
 ; Vibrato V1 PW0
-inst_12:
+inst_0C:
 	.byte 9
 	.byte 255
 	.byte 23
@@ -319,7 +319,7 @@ inst_12:
 	.byte 255
 
 ; Vibrato V1 PW1
-inst_13:
+inst_0D:
 	.byte 10
 	.byte 255
 	.byte 23
@@ -327,7 +327,7 @@ inst_13:
 	.byte 10
 
 ; Vibrato V1 PW2
-inst_14:
+inst_0E:
 	.byte 10
 	.byte 255
 	.byte 23
@@ -335,7 +335,7 @@ inst_14:
 	.byte 9
 
 ; Vibrato V10 PW0
-inst_15:
+inst_0F:
 	.byte 0
 	.byte 255
 	.byte 23
@@ -343,7 +343,7 @@ inst_15:
 	.byte 255
 
 ; Vibrato V10 PW1
-inst_16:
+inst_10:
 	.byte 0
 	.byte 255
 	.byte 23
@@ -351,7 +351,7 @@ inst_16:
 	.byte 10
 
 ; Vibrato V10 PW2
-inst_17:
+inst_11:
 	.byte 11
 	.byte 255
 	.byte 23
@@ -359,7 +359,7 @@ inst_17:
 	.byte 9
 
 ; Long Drop V15 pw3
-inst_18:
+inst_12:
 	.byte 12
 	.byte 20
 	.byte 24
@@ -367,7 +367,7 @@ inst_18:
 	.byte 25
 
 ; Long Drop V15 pw2
-inst_19:
+inst_13:
 	.byte 9
 	.byte 20
 	.byte 255
@@ -375,7 +375,7 @@ inst_19:
 	.byte 9
 
 ; Louder Stac Noise
-inst_20:
+inst_14:
 	.byte 13
 	.byte 21
 	.byte 255
@@ -383,7 +383,7 @@ inst_20:
 	.byte 10
 
 ; Quieter Stac Noise
-inst_21:
+inst_15:
 	.byte 15
 	.byte 21
 	.byte 255
@@ -391,7 +391,7 @@ inst_21:
 	.byte 10
 
 ; Snare Noise
-inst_22:
+inst_16:
 	.byte 14
 	.byte 22
 	.byte 255
