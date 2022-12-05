@@ -110,8 +110,8 @@ SoundInit:
     sta EngineFlags
 
     ; Enable everything (make this configurable?)
-    ;lda #Enable::PulseA | Enable::PulseB | Enable::Triangle | Enable::Noise
-    lda #Enable::PulseA | Enable::PulseB
+    lda #Enable::PulseA | Enable::PulseB | Enable::Triangle | Enable::Noise
+    ;lda #Enable::PulseA | Enable::PulseB
     sta $4015
     rts
 
@@ -128,7 +128,7 @@ resetChannelStates:
     cpx #ChannelStateLength
     bne :-
 
-    sta Global::OrderIdx
+    sta Global::OrderId
     rts
 
 ; Index to song in A
@@ -140,7 +140,7 @@ LoadSong:
 :
 
     lda #0
-    sta Global::OrderIdx
+    sta Global::OrderId
     sta Global::CurrentRow
 
     ; Get the song list pointer
@@ -204,7 +204,7 @@ LoadSong:
 
     iny
     lda (PointerA), y
-    sta Global::OrderIdxMax
+    sta Global::OrderIdMax
 
     iny
     lda (PointerA), y
@@ -248,7 +248,7 @@ LoadSong:
     sta PointerOrder+1
 
     ; load frame index
-    ldy Global::OrderIdx
+    ldy Global::OrderId
     lda (PointerOrder), y
     sta .ident(.concat(channelname, "_State_CurrentFrame"))
 
@@ -262,36 +262,48 @@ NextOrder:
     sta Global::CurrentRow
 
     ; Go to next frame in order
-    inc Global::OrderIdx
-    lda Global::OrderIdx
-    cmp Global::OrderIdxMax
+    inc Global::OrderId
+    lda Global::OrderId
+    cmp Global::OrderIdMax
     bcc :+
     lda #0
-    sta Global::OrderIdx
+    sta Global::OrderId
 :
 
 ; Looks at a given order and loads the appropriate frames
 LoadOrder:
     ; for each channel, load the appropriate frame
 
+    ;;
+    ;; PulseA
+    ;;
     lda #<PulseA_Pointers
     sta PointerA+0
     lda #>PulseA_Pointers
     sta PointerA+1
     loadOrder "PulseA"
 
+    ;;
+    ;; PulseB
+    ;;
     lda #<PulseB_Pointers
     sta PointerA+0
     lda #>PulseB_Pointers
     sta PointerA+1
     loadOrder "PulseB"
 
+    ;;
+    ;; Triangle
+    ;;
     lda #<Triangle_Pointers
     sta PointerA+0
     lda #>Triangle_Pointers
     sta PointerA+1
     loadOrder "Triangle"
 
+    ;;
+    ;; Noise
+    ;;
     lda #<Noise_Pointers
     sta PointerA+0
     lda #>Noise_Pointers
@@ -306,6 +318,8 @@ LoadOrder:
     sta Offset
     lda .ident(.concat(channelName, "_State_Tick"))
     sta Ch_Tick
+    lda .ident(.concat(channelName, "_State_CurrentFrame"))
+    sta Ch_CurrentFrame
     lda .ident(.concat(channelName, "_Volume_Offset"))
     sta Ch_InstOffset
 .endmacro
@@ -408,6 +422,10 @@ SoundProcess:
     loadProcessVars "PulseA"
     lda #0
     sta Ch_Id
+    lda #<PulseA_InstId
+    sta PointerDbg+0
+    lda #>PulseA_InstId
+    sta PointerDbg+1
     jsr processChannel
     saveProcessVars "PulseA"
 
@@ -427,6 +445,10 @@ SoundProcess:
     loadProcessVars "PulseB"
     lda #1
     sta Ch_Id
+    lda #<PulseB_InstId
+    sta PointerDbg+0
+    lda #>PulseB_InstId
+    sta PointerDbg+1
     jsr processChannel
     saveProcessVars "PulseB"
 
@@ -446,6 +468,10 @@ SoundProcess:
     loadProcessVars "Triangle"
     lda #2
     sta Ch_Id
+    lda #<Triangle_InstId
+    sta PointerDbg+0
+    lda #>Triangle_InstId
+    sta PointerDbg+1
     jsr processChannel
     saveProcessVars "Triangle"
 
@@ -465,6 +491,10 @@ SoundProcess:
     loadProcessVars "Noise"
     lda #3
     sta Ch_Id
+    lda #<Noise_InstId
+    sta PointerDbg+0
+    lda #>Noise_InstId
+    sta PointerDbg+1
     jsr processChannel
     saveProcessVars "Noise"
 
@@ -657,9 +687,10 @@ processChannel:
     ; Check for wait. if !zero, decrement and return
     lda Ch_Wait
     beq :+
-    sec
-    sbc #1
-    sta Ch_Wait
+    dec Ch_Wait
+    ;sec
+    ;sbc #1
+    ;sta Ch_Wait
     rts
 :
 
@@ -699,12 +730,12 @@ processChannel:
     ldy #0
     sta (PointerD), y
     inc Offset
-    lda #BufferReady::Period
+    lda #BufferReady::Period | BufferReady::Counter
     sta Ch_Ready
     rts
 :
     ; Not noise stuff
-    ; Store note Hi value in buffer
+    ; Store note Lo value in buffer
     lda Data
     asl a   ; note table is a word table
     tax
@@ -712,7 +743,7 @@ processChannel:
     ldy #0
     sta (PointerD), y
 
-    ; Store note Lo value in buffer
+    ; Store note Hi value in buffer
     inx
     lda NoteTable, x
     iny
@@ -836,6 +867,8 @@ cmdFnInstrument:
     iny
     lda (PointerFrame), y
     sta Ch_InstId
+    ldx #0
+    sta (PointerDbg, x)
     asl a ; index -> offset
     tay
 
@@ -939,6 +972,8 @@ cmdFnHalt:
     ; TODO: write this after instruments are implemented
     lda #1
     sta Ch_Ready
+    lda #0
+    sta Ch_Running
     inc Offset
     rts
 
@@ -1018,11 +1053,6 @@ WriteBuffers:
     lda #0
     sta PulseB_Ready
 
-    lda Triangle_State_Ready
-    beq :+
-    lda #0
-    sta Triangle_State_Ready
-
     ;;
     ;; Triangle
     ;;
@@ -1030,31 +1060,46 @@ WriteBuffers:
     ;ora #$80    ; disable length counter
     lda #$FF
     sta APU::Triangle_Counter
+    lda Triangle_Ready
+    and #BufferReady::TimerLo
+    beq :+
     lda Triangle_TimerLo
     sta APU::Triangle_TimerLo
+:
+    lda Triangle_Ready
+    and #BufferReady::TimerHi
+    beq :+
     lda Triangle_TimerHi
     ora #$F0
     sta APU::Triangle_TimerHi
 :
+    lda #0
+    sta Triangle_Ready
 
     ;;
     ;; Noise
     ;;
-    lda Noise_State_Ready
+    lda Noise_Ready
+    and #BufferReady::Volume
     beq :+
-    lda #0
-    sta Noise_State_Ready
-
     lda Noise_Volume
     ora #$30    ; force constant volume
-    ora #$0F    ; force full volume (for now)
     sta APU::Noise_Volume
+:
+    lda Noise_Ready
+    and #BufferReady::Period
+    beq :+
     lda Noise_Period
     sta APU::Noise_Period
-    ;lda Noise_Counter
+:
+    lda Noise_Ready
+    and #BufferReady::Counter
+    beq :+
     lda #$FF
     sta APU::Noise_Counter
 :
+    lda #0
+    sta Noise_Ready
     rts
 
 ; TODO: start playing the currently loaded song

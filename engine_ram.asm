@@ -86,6 +86,8 @@ PointerOrder:   .res 2 ; current order
 PointerInstrument: .res 2
 PointerMacro:   .res 2
 
+PointerDbg: .res 2
+
 Ch_Wait: .res 1
 Ch_CurrentFrame: .res 1
 Ch_Tick: .res 1
@@ -133,8 +135,8 @@ CurrentRow: .res 1
 Tick:       .res 1  ; ticks until the next read (counts down)
 
 ; Index into the order lists for each channel (all share the same index)
-OrderIdx:   .res 1
-OrderIdxMax:    .res 1
+OrderId:   .res 1
+OrderIdMax:    .res 1
 .endscope
 
 .enum APU
@@ -159,6 +161,7 @@ Noise_Counter = $400F
 
 ChannelStateStart:
 genChannelStateStruct "PulseA_State"
+SingleChannelStateLength = (* - ChannelStateStart)
 genChannelStateStruct "PulseB_State"
 genChannelStateStruct "Triangle_State"
 genChannelStateStruct "Noise_State"
@@ -238,24 +241,5 @@ GoToOrder:   .res 1
     Default = 0
 .endenum
 
-; Update flags
-.enum PulseUpdate
-    DutyVolume  = 1 << 0
-    Sweep       = 1 << 1
-    TimerHi     = 1 << 2
-    TimerLo     = 1 << 3
-.endenum
-
-.enum TriUpdate
-    Counter = 1 << 4
-    TimerLo = 1 << 5
-    TimerHi = 1 << 6
-.endenum
-
-.enum NoiseUpdate
-    Volume  = 1 << 0
-    Period  = 1 << 1
-    Counter = 1 << 2
-.endenum
 .popseg
 

@@ -47,7 +47,7 @@ TODOs:
         only volume macro is loaded into pointer table
 
     - cmdFnHalt
-        currently just BRK's. should stop all sound on given channel (across all channels?)
+        currently just BRK's. should stop all sound across all channels
 
     - WriteBuffers
         use update flags to determine what buffers to write
