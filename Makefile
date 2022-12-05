@@ -17,7 +17,7 @@ CA = ca65$(EXT)
 LD = ld65$(EXT)
 CONV = conversion$(EXT)
 
-CAFLAGS = -g -t nes -D DBGPRINT
+CAFLAGS = -g -t nes
 LDFLAGS = -C $(NESCFG) --dbgfile bin/$(NAME).dbg -m bin/$(NAME).map
 
 all: bin/ bin/$(NAME).nes
